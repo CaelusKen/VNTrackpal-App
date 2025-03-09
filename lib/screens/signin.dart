@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:vn_trackpal/api/auth.dart';
-import 'package:vn_trackpal/data/data_holder.dart';
 import 'package:vn_trackpal/screens/home.dart';
-import 'package:vn_trackpal/screens/otp_screen.dart';
+import 'package:vn_trackpal/screens/signinbyotp.dart';
 import 'package:vn_trackpal/utils/msg.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -15,16 +14,16 @@ class _SignInState extends State<SignInScreen> {
 
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  static final FlutterSecureStorage _storage = FlutterSecureStorage();
   bool _rememberDevice = false;
-  bool _isOtpLogin = false;
 
-  bool _isValidUsername(String username) {
-    // Email regex pattern
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    // Phone number regex pattern (assuming Vietnamese phone numbers)
-    final phoneRegex = RegExp(r'^(0|\+84)(\s|\.)?3[2-9]\d{7}$');
-
-    return emailRegex.hasMatch(username) || phoneRegex.hasMatch(username);
+  void _navigateToSignInByOtpScreen() {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SignInByOTPScreen(),
+        ),
+      );
   }
 
   @override
@@ -49,9 +48,9 @@ class _SignInState extends State<SignInScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildTextField("Tên người dùng (email, số điện thoại)", false, _usernameController),
+                    _buildTextField("Tên người dùng (email)", false, _usernameController),
                     SizedBox(height: 16),
-                    if (!_isOtpLogin) _buildTextField("Mật khẩu", true, _passwordController),
+                    _buildTextField("Mật khẩu", true, _passwordController),
                     SizedBox(height: 16),
                     Row(
                       children: [
@@ -71,22 +70,16 @@ class _SignInState extends State<SignInScreen> {
                       ],
                     ),
                     SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _isOtpLogin,
-                          onChanged: (value) {
-                            setState(() {
-                              _isOtpLogin = value!;
-                            });
-                          },
-                          fillColor: MaterialStateProperty.resolveWith((states) => Colors.yellow[700]),
+                    GestureDetector(
+                      onTap: _navigateToSignInByOtpScreen,
+                      child: Text(
+                        "Đăng nhập bằng OTP",
+                        style: TextStyle(
+                          color: Colors.yellow[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
                         ),
-                        Text(
-                          "Đăng nhập bằng OTP",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
+                      ),
                     ),
                     SizedBox(height: 16),
                     ElevatedButton(
@@ -94,38 +87,23 @@ class _SignInState extends State<SignInScreen> {
                         final username = _usernameController.text.trim();
                         if (username.isEmpty) {
                           Utils.showToast("Vui lòng nhập tên người dùng", context);
-                        } else if (!_isValidUsername(username)) {
-                          Utils.showToast("Tên người dùng không hợp lệ", context);
-                        } else if (!_isOtpLogin && _passwordController.text.isEmpty) {
+                        } else if (_passwordController.text.isEmpty) {
                           Utils.showToast("Vui lòng nhập mật khẩu", context);
                         } else {
-                          if (_isOtpLogin) {
-                            Provider.of<UserData>(context, listen: false).setUsername(username);
-                            // Navigate to OTP screen
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => OTPScreen(),
-                              ),
-                            );
-                          } else {
-                            //setState(() {isLoading = true;});
-                            await AuthApi.login(
-                              email: username,
-                              password: _passwordController.text,
-                              context: context).then((value) {
-                              if (value) {
-                                //setState(() {isLoading = false;});
-                                  Provider.of<UserData>(context, listen: false).setName("Tuấn");
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CalorieTrackerHome(),
-                                    ),
-                                  );
-                              }
-                            });
-                          }
+                          await AuthApi.login(
+                            email: username,
+                            password: _passwordController.text,
+                            context: context, saveCredential: _rememberDevice).then((value) {
+                            if (value) {
+                              _storage.write(key: 'name', value: "Tuấn");
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CalorieTrackerHome(),
+                                ),
+                              );
+                            }
+                          });
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -133,10 +111,10 @@ class _SignInState extends State<SignInScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                        padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
                       ),
                       child: Text(
-                        _isOtpLogin ? "Gửi OTP" : "Đăng nhập",
+                        "Đăng nhập",
                         style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                       ),
                     ),

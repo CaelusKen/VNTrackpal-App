@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:vn_trackpal/data/data_holder.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:vn_trackpal/screens/planning.dart';
 
-class CalorieTrackerHome extends StatelessWidget {
+class CalorieTrackerHome extends StatefulWidget {
+  @override
+  _CalorieTrackerHomeState createState() => _CalorieTrackerHomeState();
+}
+
+class _CalorieTrackerHomeState extends State<CalorieTrackerHome> {
+  static final FlutterSecureStorage _storage = FlutterSecureStorage();
+
+  Future<String> _getName() async {
+    String? name = await _storage.read(key: 'name');
+    return name ?? 'Người dùng'; // Default to 'Người dùng' if name is null
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,16 +40,23 @@ class CalorieTrackerHome extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Consumer<UserData>(
-                      builder: (context, userData, child) {
-                        return Text(
-                          'XIN CHÀO ${userData.name.toUpperCase()},',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        );
+                    FutureBuilder<String>(
+                      future: _getName(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else {
+                          return Text(
+                            'XIN CHÀO ${snapshot.data?.toUpperCase()},',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        }
                       },
                     ),
                     const SizedBox(height: 10),

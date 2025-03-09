@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:vn_trackpal/api/auth.dart';
-import 'package:vn_trackpal/screens/home.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:vn_trackpal/screens/otp_screen.dart';
 import 'package:vn_trackpal/utils/msg.dart';
 
-class SignUpScreen extends StatefulWidget {
+class SignInByOTPScreen extends StatefulWidget {
   @override
-  _RegisterState createState() => _RegisterState();
+  _SignInState createState() => _SignInState();
 }
 
-class _RegisterState extends State<SignUpScreen> {
-  final TextEditingController _nameController = TextEditingController();
+class _SignInState extends State<SignInByOTPScreen> {
+
   final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _rePasswordController = TextEditingController();
+  static final FlutterSecureStorage _storage = FlutterSecureStorage();
+  bool _rememberDevice = false;
 
   @override
   Widget build(BuildContext context) {
@@ -36,41 +36,39 @@ class _RegisterState extends State<SignUpScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildTextField("Tên", false, _nameController),
-                    SizedBox(height: 16),
                     _buildTextField("Tên người dùng (email)", false, _usernameController),
                     SizedBox(height: 16),
-                    _buildTextField("Mật khẩu", true, _passwordController),
-                    SizedBox(height: 16),
-                    _buildTextField("Nhập lại mật khẩu", true, _rePasswordController),
-                    SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final username = _usernameController.text.trim();
-                        final name = _nameController.text.trim();
-                        if (name.isEmpty) {
-                          Utils.showToast("Vui lòng nhập tên", context);
-                        } else if (username.isEmpty) {
-                          Utils.showToast("Vui lòng nhập email", context);
-                        //} else if (!_isValidUsername(username)) {
-                        //  Utils.showToast("Tên người dùng không hợp lệ", context);
-                        } else if (_passwordController.text.isEmpty) {
-                          Utils.showToast("Vui lòng nhập mật khẩu", context);
-                        } else {
-                          await AuthApi.register(
-                              email: username,
-                              password: _passwordController.text,
-                              context: context).then((value) {
-                              if (value) {
-                                //setState(() {isLoading = false;});
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CalorieTrackerHome(),
-                                    ),
-                                  );
-                              }
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _rememberDevice,
+                          onChanged: (value) {
+                            setState(() {
+                              _rememberDevice = value!;
                             });
+                          },
+                          fillColor: MaterialStateProperty.resolveWith((states) => Colors.yellow[700]),
+                        ),
+                        Text(
+                          "Ghi nhớ thiết bị này",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        final username = _usernameController.text.trim();
+                        if (username.isEmpty) {
+                          Utils.showToast("Vui lòng nhập tên người dùng", context);
+                        } else {
+                          _storage.write(key: 'username', value: username);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => OTPScreen(),
+                            ),
+                          );
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -81,7 +79,7 @@ class _RegisterState extends State<SignUpScreen> {
                         padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
                       ),
                       child: Text(
-                        "Đăng kí",
+                        "Đăng nhập",
                         style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                       ),
                     ),
