@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vn_trackpal/api/auth.dart';
-import 'package:vn_trackpal/screens/home.dart';
+import 'package:vn_trackpal/screens/signupinfo.dart';
 import 'package:vn_trackpal/utils/msg.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -9,7 +9,6 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _RegisterState extends State<SignUpScreen> {
-  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _rePasswordController = TextEditingController();
@@ -36,8 +35,6 @@ class _RegisterState extends State<SignUpScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildTextField("Tên", false, _nameController),
-                    SizedBox(height: 16),
                     _buildTextField("Tên người dùng (email)", false, _usernameController),
                     SizedBox(height: 16),
                     _buildTextField("Mật khẩu", true, _passwordController),
@@ -47,10 +44,7 @@ class _RegisterState extends State<SignUpScreen> {
                     ElevatedButton(
                       onPressed: () async {
                         final username = _usernameController.text.trim();
-                        final name = _nameController.text.trim();
-                        if (name.isEmpty) {
-                          Utils.showToast("Vui lòng nhập tên", context);
-                        } else if (username.isEmpty) {
+                        if (username.isEmpty) {
                           Utils.showToast("Vui lòng nhập email", context);
                         //} else if (!_isValidUsername(username)) {
                         //  Utils.showToast("Tên người dùng không hợp lệ", context);
@@ -66,7 +60,7 @@ class _RegisterState extends State<SignUpScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => CalorieTrackerHome(),
+                                      builder: (context) => SignUpInfoScreen(),
                                     ),
                                   );
                               }

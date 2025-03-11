@@ -3,6 +3,7 @@ import 'package:vn_trackpal/api/auth.dart';
 import 'package:vn_trackpal/screens/home.dart';
 import 'package:vn_trackpal/screens/signin.dart';
 import 'package:vn_trackpal/screens/signup.dart';
+import 'package:vn_trackpal/screens/signupinfo.dart';
 
 class VNTrackpalWaitPreLogin extends StatefulWidget {
   @override
@@ -19,9 +20,10 @@ class _VNTrackpalWaitPreLoginState extends State<VNTrackpalWaitPreLogin> {
   Future<void> _checkCredentials() async {
   bool hasCredentials = await AuthApi.loadCredentials();
   if (hasCredentials) {
+    bool isProfileComplete = await AuthApi.isProfileComplete();
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => CalorieTrackerHome()),
+        MaterialPageRoute(builder: (context) => isProfileComplete ? CalorieTrackerHome() : SignUpInfoScreen()),
       );
     }
   }

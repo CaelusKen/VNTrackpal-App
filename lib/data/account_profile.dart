@@ -3,19 +3,31 @@
 //     final accountProfile = accountProfileFromJson(jsonString);
 
 import 'dart:convert';
-import 'dart:ffi';
 
 AccountProfile accountProfileFromJson(String str) => AccountProfile.fromJson(json.decode(str));
 
 String accountProfileToJson(AccountProfile data) => json.encode(data.toJson());
+ final Map<String, String> _genderMap = {
+    'Nam': 'Male',
+    'Nữ': 'Female',
+    'Male' : 'Nam',
+    'Female' : 'Nữ'
+  };
+
+  // Method to get English gender
+  String _convertGender(String gender) {
+    return _genderMap[gender] ?? gender;
+  }
 
 class AccountProfile {
-    //int? id;
+    String? id;
     String? name;
     String? email;
     //Bool? ispre;
-    //DateTime? dayOfBirth;
-    //String? gender;
+    int? age;
+    String? gender;
+    int? weight;
+    int? height;
     //String? phone;
     String? avatar;
     //double? walletId;
@@ -26,13 +38,14 @@ class AccountProfile {
     //String? youtubeLink;
 
     AccountProfile({
-        //this.id,
+        this.id,
         this.name,
         this.email,
         //this.ispre,
-        //this.dayOfBirth,
-        //this.gender,
-        //this.phone,
+        this.age,
+        this.gender,
+        this.weight,
+        this.height,
         this.avatar,
         //this.walletId,
         //this.walletPoint,
@@ -43,13 +56,14 @@ class AccountProfile {
     });
 
     AccountProfile copyWith({
-        //int? id,
+        int? id,
         String? name,
         String? email,
         //Bool? ispre,
-        //DateTime? dayOfBirth,
-        //String? gender,
-        //String? phone,
+        int? age,
+        String? gender,
+        int? weight,
+        int? height,
         String? avatar,
         //double? walletId,
         //double? walletPoint,
@@ -63,9 +77,10 @@ class AccountProfile {
             name: name ?? this.name,
             email: email ?? this.email,
             //ispre: ispre ?? this.ispre,
-            //dayOfBirth: dayOfBirth ?? this.dayOfBirth,
-            //gender: gender ?? this.gender,
-            //phone: phone ?? this.phone,
+            age: age ?? this.age,
+            gender: gender ?? this.gender,
+            weight: weight ?? this.weight,
+            height: height ?? this.height,
             avatar: avatar ?? this.avatar,
             //walletId: walletId ?? this.walletId,
             //walletPoint: walletPoint ?? this.walletPoint,
@@ -76,13 +91,14 @@ class AccountProfile {
         );
 
     factory AccountProfile.fromJson(Map<String, dynamic> json) => AccountProfile(
-        //id: json["id"],
+        id: json["id"],
         name: json["fullName"],
         email: json["email"],
         //ispre: json["ispre"]??false,
-        //dayOfBirth: json["dayOfBirth"] == null ? null : DateTime.parse(json["dayOfBirth"]),
-        //gender: json["gender"],
-        //phone: json["phone"],
+        age: json["age"],
+        gender: json["gender"] == null ? null : _convertGender(json["gender"]),
+        weight: json["weight"],
+        height: json["height"],
         avatar: json["avatarUrl"],
         //walletId: json["walletId"]?.toDouble(),
         //walletPoint: json["walletPoint"]?.toDouble(),
@@ -93,13 +109,14 @@ class AccountProfile {
     );
 
     Map<String, dynamic> toJson() => {
-        //"id": id,
+        "id": id,
         "fullName": name,
         "email": email,
         //"ispre": ispre,
-        //"dayOfBirth": "${dayOfBirth!.year.toString().padLeft(4, '0')}-${dayOfBirth!.month.toString().padLeft(2, '0')}-${dayOfBirth!.day.toString().padLeft(2, '0')}",
-        //"gender": gender,
-        //"phone": phone,
+        "age": age,
+        "gender": gender,
+        "weight": weight,
+        "height": height,
         "avatarUrl": avatar,
         //"walletId": walletId,
         //"walletPoint": walletPoint,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:vn_trackpal/api/auth.dart';
 import 'package:vn_trackpal/screens/home.dart';
 import 'package:vn_trackpal/screens/signinbyotp.dart';
+import 'package:vn_trackpal/screens/signupinfo.dart';
 import 'package:vn_trackpal/utils/msg.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -14,7 +14,6 @@ class _SignInState extends State<SignInScreen> {
 
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  static final FlutterSecureStorage _storage = FlutterSecureStorage();
   bool _rememberDevice = false;
 
   void _navigateToSignInByOtpScreen() {
@@ -90,20 +89,11 @@ class _SignInState extends State<SignInScreen> {
                         } else if (_passwordController.text.isEmpty) {
                           Utils.showToast("Vui lòng nhập mật khẩu", context);
                         } else {
-                          await AuthApi.login(
-                            email: username,
-                            password: _passwordController.text,
-                            context: context, saveCredential: _rememberDevice).then((value) {
-                            if (value) {
-                              _storage.write(key: 'name', value: "Tuấn");
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CalorieTrackerHome(),
-                                ),
-                              );
-                            }
-                          });
+                          bool loginSuccess = await AuthApi.login(email: username, password: _passwordController.text, context: context, saveCredential: _rememberDevice);
+                          if (loginSuccess) {
+                            bool isProfileComplete = await AuthApi.isProfileComplete();
+                            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => isProfileComplete ? CalorieTrackerHome() : SignUpInfoScreen()));
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(

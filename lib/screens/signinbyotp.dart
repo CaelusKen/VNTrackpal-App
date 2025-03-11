@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:vn_trackpal/api/auth.dart';
 import 'package:vn_trackpal/screens/otp_screen.dart';
 import 'package:vn_trackpal/utils/msg.dart';
 
@@ -57,18 +58,24 @@ class _SignInState extends State<SignInByOTPScreen> {
                     ),
                     SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         final username = _usernameController.text.trim();
                         if (username.isEmpty) {
                           Utils.showToast("Vui lòng nhập tên người dùng", context);
                         } else {
-                          _storage.write(key: 'username', value: username);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => OTPScreen(),
-                            ),
-                          );
+                          await AuthApi.loginWithOnlyEmail(
+                            email: username,
+                            context: context).then((value) {
+                            if (value) {
+                              _storage.write(key: 'username', value: username);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OTPScreen(rememberDevice: _rememberDevice),
+                                ),
+                              );
+                            }
+                          });
                         }
                       },
                       style: ElevatedButton.styleFrom(

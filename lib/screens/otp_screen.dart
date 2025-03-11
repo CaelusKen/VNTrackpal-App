@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:vn_trackpal/api/auth.dart';
 import 'package:vn_trackpal/screens/home.dart';
-import 'package:vn_trackpal/utils/msg.dart';
+import 'package:vn_trackpal/screens/signupinfo.dart';
 import 'package:flutter/services.dart';
 
 class OTPScreen extends StatefulWidget {
+  final bool rememberDevice;
+
+  const OTPScreen({Key? key, required this.rememberDevice}) : super(key: key);
   @override
   _OTPScreenState createState() => _OTPScreenState();
 }
 
 class _OTPScreenState extends State<OTPScreen> {
   final TextEditingController _otpController = TextEditingController();
+  static final FlutterSecureStorage _storage = FlutterSecureStorage();
 
   @override
   void dispose() {
@@ -76,13 +82,13 @@ class _OTPScreenState extends State<OTPScreen> {
   return TextField(
     controller: _otpController,
     keyboardType: TextInputType.number,
-    maxLength: 6,
+    maxLength: 5,
     textAlign: TextAlign.center,
     style: TextStyle(fontSize: 24),
     decoration: InputDecoration(
       filled: true,
       fillColor: Colors.white,
-      hintText: "Mã OTP 6 số",
+      hintText: "Mã OTP 5 số",
       hintStyle: TextStyle(color: Colors.grey),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
@@ -105,16 +111,13 @@ class _OTPScreenState extends State<OTPScreen> {
         color: Colors.yellow[700],
       ),
       child: ElevatedButton(
-        onPressed: () {
+        onPressed: () async {
           String enteredOTP = _otpController.text;
-          if (enteredOTP == "344346") {
-            // OTP matches, navigate to the next screen
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => CalorieTrackerHome()),
-            );
-          } else {
-            // OTP doesn't match, show toast
-            Utils.showToast("Mã OTP không đúng. Vui lòng thử lại.", context);
+          String username = await _storage.read(key: 'username') ?? "";
+          bool isSuccess = await AuthApi.confirmLoginWithEmail(email: username, code: enteredOTP, context: context, saveCredential: widget.rememberDevice);
+          if (isSuccess) {
+            bool isProfileComplete = await AuthApi.isProfileComplete();
+            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => isProfileComplete ? CalorieTrackerHome() : SignUpInfoScreen()));
           }
         },
         style: ElevatedButton.styleFrom(
@@ -137,7 +140,10 @@ class _OTPScreenState extends State<OTPScreen> {
         borderRadius: BorderRadius.circular(30),
       ),
       child: TextButton(
-        onPressed: () {},
+        onPressed: () async {
+          String username = await _storage.read(key: 'username') ?? "";
+          await AuthApi.loginWithOnlyEmail(email: username,context: context);
+        },
         style: TextButton.styleFrom(
           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         ),

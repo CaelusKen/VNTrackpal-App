@@ -12,12 +12,73 @@ import 'package:path_provider/path_provider.dart';
 import 'package:vn_trackpal/data/account_profile.dart';
 import 'package:vn_trackpal/utils/msg.dart';
 
-const loginEndpoint = 'http://192.168.0.185:5000/api/v1/Auth/login';
-const signUpEndpoint = 'http://192.168.0.185:5000/api/v1/Auth/register';
-const persistentLoginEnpoint = 'http://192.168.0.185:5000/api/v1/Auth/refresh-token';
+const IP = 'http://172.20.10.4:5000';
+const loginEndpoint = '$IP/api/v1/Auth/login';
+const loginWithEmailEndpoint = '$IP/api/v1/Auth/login-with-email';
+const confirmLoginWithEmailEndpoint = '$IP/api/v1/Auth/confirm-login-with-email';
+const signUpEndpoint = '$IP/api/v1/Auth/register';
+const persistentLoginEnpoint = '$IP/api/v1/Auth/refresh-token';
+const getProfileEndpoint = '$IP/api/v1/User/get-profile';
+const updateProfileEndpoint = '$IP/api/v1/User/first-update-info-user';
 
 class AuthApi {
   static final FlutterSecureStorage _storage = FlutterSecureStorage();
+
+  static Future<String> getRefreshToken(String? cookieheader) async {
+    if (cookieheader != null) {
+      // Parse the cookie
+      String refreshToken = _parseRefreshTokenFromCookie(cookieheader);
+      if (refreshToken.isEmpty) {
+        log('No Set-Cookie header found in the response');
+      }
+      await _storage.write(key: 'refreshToken', value: refreshToken);
+      return refreshToken;
+    }
+    log('No Set-Cookie header found in the response');
+    return '';
+  }
+
+  static Future<String> getAndStoreAccessToken(String? responseBody) async {
+    if (responseBody != null) {
+      String? accessToken = json.decode(responseBody)['authTokenDTO']['accessToken'];
+        if (accessToken != null) {
+          await _storage.write(key: 'accessToken', value: accessToken);
+          return accessToken;
+        }
+    }
+    return '';
+  }
+
+  static Future<String> requestNewAccessToken({required String refreshToken}) async {
+    var url = Uri.parse(persistentLoginEnpoint);
+    try {
+      final response = await http.get(
+        url,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json; charset=UTF-8',
+          'Cookie' : refreshToken
+        }
+      ).timeout(const Duration(seconds: 10)); // Set a timeout of 10 seconds
+
+      log(jsonEncode(response.body));
+      if (response.statusCode == 200) {
+        String? accessToken = json.decode(response.body)['authTokenDTO']['accessToken'];
+        if (accessToken!= null) {
+          await _storage.write(key: 'accessToken', value: accessToken);
+          return response.body;
+        }
+      }
+    } on TimeoutException catch (_) {
+      //Utils.showToast('Server is not responding. Please try again later.', context);
+    } on SocketException catch (_) {
+      //Utils.showToast('No internet connection. Please check your network settings.', context);
+    } catch (e) {
+      //Utils.showToast('An unexpected error occurred. Please try again.', context);
+      //log('Login error: $e');
+    }
+    return '';
+  }
 
   static Future<bool> login(
       {required String email, required String password, required BuildContext context, bool saveCredential = false}) async {
@@ -34,16 +95,13 @@ class AuthApi {
 
       log(jsonEncode(response.body));
       if (response.statusCode == 200) {
-        await getProfile(response.body);
-        String? setCookieHeader = response.headers['set-cookie'];
-        if (setCookieHeader != null) {
-          // Parse the cookie
-          String refreshToken = _parseRefreshTokenFromCookie(setCookieHeader);
+        getAndStoreAccessToken(response.body);
+        //await getProfile(response.body);
+        String cookie = await getRefreshToken(response.headers['set-cookie']);
+        if (cookie.isNotEmpty) {
           if (saveCredential) {
-            await saveCredentials(refreshToken);
+            await saveCredentials(cookie);
           }
-        } else {
-          log('No Set-Cookie header found in the response');
         }
         return true;
       } else {
@@ -60,33 +118,90 @@ class AuthApi {
     return false;
   }
 
-  static Future<bool> persistentLogin(
-      {required String refreshToken}) async {
-    var url = Uri.parse(persistentLoginEnpoint);
+  static Future<bool> loginWithOnlyEmail(
+      {required String email, required BuildContext context}) async {
+    var url = Uri.parse(loginWithEmailEndpoint);
     try {
-      final response = await http.get(
+      final response = await http.post(
         url,
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
           'Accept': 'application/json; charset=UTF-8',
-          'Cookie' : refreshToken
-        }
+        },
+        body: jsonEncode({"email": email}),
       ).timeout(const Duration(seconds: 10)); // Set a timeout of 10 seconds
 
       log(jsonEncode(response.body));
       if (response.statusCode == 200) {
-        await getProfile(response.body);
         return true;
+      } else {
+        Utils.showToast(json.decode(response.body)['errors'][0]['message'], context);
       }
     } on TimeoutException catch (_) {
-      //Utils.showToast('Server is not responding. Please try again later.', context);
+      Utils.showToast('Server is not responding. Please try again later.', context);
     } on SocketException catch (_) {
-      //Utils.showToast('No internet connection. Please check your network settings.', context);
+      Utils.showToast('No internet connection. Please check your network settings.', context);
     } catch (e) {
-      //Utils.showToast('An unexpected error occurred. Please try again.', context);
-      //log('Login error: $e');
+      Utils.showToast('An unexpected error occurred. Please try again.', context);
+      log('Login error: $e');
     }
     return false;
+  }
+
+  static Future<bool> confirmLoginWithEmail(
+    {required String email, required String code, required BuildContext context, bool saveCredential = false}) async {
+    var url = Uri.parse(confirmLoginWithEmailEndpoint);
+    try {
+      final response = await http.post(
+        url,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({"email": email, "otp" : code}),
+      ).timeout(const Duration(seconds: 10)); // Set a timeout of 10 seconds
+
+      log(jsonEncode(response.body));
+      if (response.statusCode == 200) {
+        getAndStoreAccessToken(response.body);
+        //await getProfile(response.body);
+        String cookie = await getRefreshToken(response.headers['set-cookie']);
+        if (cookie.isNotEmpty) {
+          if (saveCredential) {
+            await saveCredentials(cookie);
+          }
+        }
+        return true;
+      } else {
+        if (response.statusCode == 400) {
+          Utils.showToast("Mã OTP không đúng. Vui lòng thử lại.", context);
+        }
+        return false;
+        //Utils.showToast(json.decode(response.body)['errors'][0]['message'], context);
+      }
+    } on TimeoutException catch (_) {
+      Utils.showToast('Server is not responding. Please try again later.', context);
+    } on SocketException catch (_) {
+      Utils.showToast('No internet connection. Please check your network settings.', context);
+    } catch (e) {
+      Utils.showToast('An unexpected error occurred. Please try again.', context);
+      log('Login error: $e');
+    }
+    return false;
+  }
+
+  static Future<bool> persistentLogin(
+      {required String refreshToken}) async {
+    String response = await requestNewAccessToken(refreshToken: refreshToken);
+    if (response.isEmpty) {
+      return false;
+    }
+    //try {
+    //  await getProfile(response);
+    //} catch (e) {
+    //  log('Login error: $e');
+    //}
+    return true;
   }
 
   static Future<bool> register({required String email, required String password, required BuildContext context, bool saveCredential = false}) async {
@@ -102,16 +217,13 @@ class AuthApi {
       );
       log(jsonEncode(response.body));
       if (response.statusCode == 200) {
-        await getProfile(response.body);
-        String? setCookieHeader = response.headers['set-cookie'];
-        if (setCookieHeader != null) {
-          // Parse the cookie
-          String refreshToken = _parseRefreshTokenFromCookie(setCookieHeader);
+        getAndStoreAccessToken(response.body);
+        //await getProfile(response.body);
+        String cookie = await getRefreshToken(response.headers['set-cookie']);
+        if (cookie.isNotEmpty) {
           if (saveCredential) {
-            await saveCredentials(refreshToken);
+            await saveCredentials(cookie);
           }
-        } else {
-          log('No Set-Cookie header found in the response');
         }
         return true;
       } else {
@@ -128,15 +240,78 @@ class AuthApi {
     return false;
   }
 
-  static Future<AccountProfile> getProfile(String response) async {
-      var data = jsonDecode(response)['authUserDTO'];
-      //String name = data['fullName'];
-      String username = data['email'];
-      String name = username;
-      _storage.write(key: 'username', value: username);
-      _storage.write(key: 'name', value: name);
-      //await _storage.write(key: 'name', value: name);
+  static Future<AccountProfile> getProfile() async {
+    var url = Uri.parse(getProfileEndpoint);
+    String? accessToken = await _storage.read(key: 'accessToken');
+    final response = await http.get(
+      url,
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Accept': 'application/json; charset=UTF-8',
+        'Authorization': 'Bearer $accessToken'
+      },
+    );
+    log(jsonEncode(response.body.toString()));
+    if (response.statusCode == 200) {
+      var data = jsonDecode(response.body)['value']['data']['user'];
+      String? name = data['fullName'];
+      if (name != null) {
+        await _storage.write(key: 'name', value: name);
+      }
       return AccountProfile.fromJson(data);
+    }
+    throw Exception('Failed to fetch profile');
+  }
+
+  static Future<bool> updateProfile({required String username, required String name, required String age, required String gender, required String weight, required String height, required BuildContext context}) async {
+    var url = Uri.parse(updateProfileEndpoint);
+    String? id = await _storage.read(key: 'id')??"";
+    String? accessToken = await _storage.read(key: 'accessToken');
+    try {
+      final response = await http.post(
+        url,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $accessToken'
+        },
+        body: jsonEncode({"id": id, "email": username, "fullname": name, "age": age, "gender": _convertGender(gender), "weight": weight, "height": height, "avatar" : "https://res.cloudinary.com/dt1pydcgj/image/upload/v1739093062/samples/two-ladies.jpg", "password": "123456"}),
+      );
+      log(jsonEncode(response.body.toString()));
+      if (response.statusCode == 200) {
+        return true;
+      }
+    } on TimeoutException catch (_) {
+      Utils.showToast('Server is not responding. Please try again later.', context);
+    } on SocketException catch (_) {
+      Utils.showToast('No internet connection. Please check your network settings.', context);
+    } catch (e) {
+      Utils.showToast('An unexpected error occurred. Please try again.', context);
+      log('Update error: $e');
+    }
+    return false;
+  }
+
+  static Future<bool> isProfileComplete() async {
+    try {
+      final profile = await getProfile();
+      await _storage.write(key: 'id', value: profile.id);
+      await _storage.write(key: 'username', value: profile.email);
+      return profile.gender!= null;
+    } catch (e) {
+      String? refreshToken = await _storage.read(key:'refreshToken');
+      String newAccessToken = await requestNewAccessToken(refreshToken: refreshToken??"");
+      if (newAccessToken.isEmpty) {
+        exit(-1);
+      }
+      try {
+        final profile = await getProfile();
+        await _storage.write(key: 'id', value: profile.id);
+        return profile.gender!= null;
+      } catch (e) {
+        return false;
+      }
+    }
   }
 
   static Future<bool> loadCredentials() async {
@@ -151,6 +326,7 @@ class AuthApi {
 
         final encrypter = encrypt.Encrypter(encrypt.AES(key));
         final decryptedContents  = encrypter.decrypt(encrypt.Encrypted(encryptedContents), iv: iv);
+        await _storage.write(key: 'refreshToken', value: decryptedContents);
         return await persistentLogin(refreshToken : decryptedContents);
 
       } else {
@@ -248,4 +424,16 @@ class AuthApi {
   // If no refresh token found, return an empty string
   return '';
 }
+
+ static final Map<String, String> _genderMap = {
+    'Nam': 'Male',
+    'Nữ': 'Female',
+    'Male' : 'Nam',
+    'Female' : 'Nữ'
+  };
+
+  // Method to get English gender
+  static String _convertGender(String gender) {
+    return _genderMap[gender] ?? gender;
+  }
 }
