@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:vn_trackpal/screens/dishselector.dart';
+import 'package:vn_trackpal/screens/log.dart';
 import 'package:vn_trackpal/screens/planning.dart';
+import 'package:vn_trackpal/screens/planningv2.dart';
+import 'package:vn_trackpal/screens/recommenddish.dart';
+import 'package:vn_trackpal/screens/userprofile.dart';
 
 class CalorieTrackerHome extends StatefulWidget {
   @override
@@ -16,6 +21,7 @@ class _CalorieTrackerHomeState extends State<CalorieTrackerHome> {
   }
   @override
   Widget build(BuildContext context) {
+    //AuthApi.deleteCredentials();
     return Scaffold(
       body: Stack(
         children: [
@@ -88,10 +94,34 @@ class _CalorieTrackerHomeState extends State<CalorieTrackerHome> {
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
                       children: [
-                        _buildInfoCard('Vận động', '00 calo', Icons.fireplace),
-                        _buildInfoCard('Cân nặng', 'trong vòng 1 tuần', Icons.line_weight),
-                        _buildInfoCard('Gợi ý bữa ăn tiếp theo', '', Icons.restaurant),
-                        _buildInfoCard('Tìm món ăn mới?', '', Icons.search),
+                        _buildInfoCard('Vận động', '00 calo', Icons.fireplace, () {
+                          // Navigate to Exercise page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => TrackScreen()),
+                          );
+                        }),
+                      _buildInfoCard('Cân nặng', 'trong vòng 1 tuần', Icons.line_weight, () {
+                          // Navigate to Weight Tracking page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => TrackScreen()),
+                          );
+                      }),
+                      _buildInfoCard('Gợi ý bữa ăn tiếp theo', '', Icons.restaurant, () {
+                        // Navigate to Meal Suggestion page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => RecommendDishScreen()),
+                        );
+                      }),
+                      _buildInfoCard('Tìm món ăn mới?', '', Icons.search, () {
+                        // Navigate to Food Search page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => DishSelectorScreen()),
+                        );
+                      }),
                       ],
                     ),
                   ],
@@ -122,8 +152,10 @@ class _CalorieTrackerHomeState extends State<CalorieTrackerHome> {
     );
   }
 
-  Widget _buildInfoCard(String title, String subtitle, IconData icon) {
-    return Card(
+  Widget _buildInfoCard(String title, String subtitle, IconData icon, VoidCallback? onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Card(
       color: Colors.black.withOpacity(0.7),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -148,8 +180,9 @@ class _CalorieTrackerHomeState extends State<CalorieTrackerHome> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTransparentFooter(BuildContext context) {
     return Container(
@@ -159,14 +192,24 @@ class _CalorieTrackerHomeState extends State<CalorieTrackerHome> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildFooterItem(Icons.home, 'Chung', null),
-          _buildFooterItem(Icons.book, 'Nhật kí', null),
+          _buildFooterItem(Icons.book, 'Nhật kí', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => LogScreen()),
+            );
+          }),
           _buildFooterItem(Icons.list, 'Kế hoạch', () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => PlanningScreen()),
             );
           }),
-          _buildFooterItem(Icons.more_horiz, 'Khác', null),
+          _buildFooterItem(Icons.person, 'Hồ sơ', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => UserProfileScreen()),
+            );
+          }),
         ],
       ),
     );

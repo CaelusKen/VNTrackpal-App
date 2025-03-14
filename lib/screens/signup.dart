@@ -50,6 +50,8 @@ class _RegisterState extends State<SignUpScreen> {
                         //  Utils.showToast("Tên người dùng không hợp lệ", context);
                         } else if (_passwordController.text.isEmpty) {
                           Utils.showToast("Vui lòng nhập mật khẩu", context);
+                        } else if (_passwordController.text != _rePasswordController.text) {
+                          Utils.showToast("Mật khẩu không khớp", context);
                         } else {
                           await AuthApi.register(
                               email: username,

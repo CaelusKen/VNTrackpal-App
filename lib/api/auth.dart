@@ -12,7 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:vn_trackpal/data/account_profile.dart';
 import 'package:vn_trackpal/utils/msg.dart';
 
-const IP = 'http://172.20.10.4:5000';
+const IP = 'http://192.168.1.35:5000';
 const loginEndpoint = '$IP/api/v1/Auth/login';
 const loginWithEmailEndpoint = '$IP/api/v1/Auth/login-with-email';
 const confirmLoginWithEmailEndpoint = '$IP/api/v1/Auth/confirm-login-with-email';
@@ -43,11 +43,16 @@ class AuthApi {
       String? accessToken = json.decode(responseBody)['authTokenDTO']['accessToken'];
         if (accessToken != null) {
           await _storage.write(key: 'accessToken', value: accessToken);
+          await _storage.write(key: 'accessTokenExpiredAt', value: getTokenExpireSeconds(offset: 1500).toString());
           return accessToken;
         }
     }
     return '';
   }
+
+  static int getTokenExpireSeconds({int offset = 0}) {
+   return DateTime.now().millisecondsSinceEpoch ~/ 1000 + offset;
+ }
 
   static Future<String> requestNewAccessToken({required String refreshToken}) async {
     var url = Uri.parse(persistentLoginEnpoint);
@@ -66,6 +71,7 @@ class AuthApi {
         String? accessToken = json.decode(response.body)['authTokenDTO']['accessToken'];
         if (accessToken!= null) {
           await _storage.write(key: 'accessToken', value: accessToken);
+          await _storage.write(key: 'accessTokenExpiredAt', value: getTokenExpireSeconds(offset: 1500).toString());
           return response.body;
         }
       }
@@ -264,6 +270,8 @@ class AuthApi {
   }
 
   static Future<bool> updateProfile({required String username, required String name, required String age, required String gender, required String weight, required String height, required BuildContext context}) async {
+    bool cansend = await ensureValidAccessToken();
+    if (!cansend) exit(-1);
     var url = Uri.parse(updateProfileEndpoint);
     String? id = await _storage.read(key: 'id')??"";
     String? accessToken = await _storage.read(key: 'accessToken');
@@ -293,24 +301,16 @@ class AuthApi {
   }
 
   static Future<bool> isProfileComplete() async {
+    bool cansend = await ensureValidAccessToken();
+    if (!cansend) exit(-1);
     try {
       final profile = await getProfile();
       await _storage.write(key: 'id', value: profile.id);
       await _storage.write(key: 'username', value: profile.email);
+      await _storage.write(key: 'avatar', value: profile.avatar);
       return profile.gender!= null;
     } catch (e) {
-      String? refreshToken = await _storage.read(key:'refreshToken');
-      String newAccessToken = await requestNewAccessToken(refreshToken: refreshToken??"");
-      if (newAccessToken.isEmpty) {
-        exit(-1);
-      }
-      try {
-        final profile = await getProfile();
-        await _storage.write(key: 'id', value: profile.id);
-        return profile.gender!= null;
-      } catch (e) {
-        return false;
-      }
+      return false;
     }
   }
 
@@ -435,5 +435,16 @@ class AuthApi {
   // Method to get English gender
   static String _convertGender(String gender) {
     return _genderMap[gender] ?? gender;
+  }
+  
+  static Future<bool> ensureValidAccessToken() async {
+    String stringExpirationTime = await _storage.read(key: 'accessTokenExpiredAt')?? '0';
+    int expirationTime = int.parse(stringExpirationTime) - getTokenExpireSeconds();
+    if (expirationTime < 0) {
+      String refreshToken = await _storage.read(key:'refreshToken')??'';
+      String result = await requestNewAccessToken(refreshToken: refreshToken);
+      return result.isNotEmpty;
+    }
+    return true;
   }
 }
