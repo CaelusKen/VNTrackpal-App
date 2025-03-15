@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:vn_trackpal/screens/home.dart';
+import 'package:vn_trackpal/screens/planningv2.dart';
+import 'package:vn_trackpal/screens/userprofile.dart';
 
-class PlanningScreen extends StatelessWidget {
-  const PlanningScreen({super.key});
+class TrackScreen extends StatelessWidget {
+  const TrackScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +17,55 @@ class PlanningScreen extends StatelessWidget {
           ),
         ),
         child: const CalorieChart(),
+      ),
+      bottomNavigationBar: _buildTransparentFooter(context),
+    );
+  }
+
+  Widget _buildTransparentFooter(BuildContext context) {
+    return Container(
+      height: 60,
+      color: Colors.black.withOpacity(0.95),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildFooterItem(Icons.home, 'Chung', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => CalorieTrackerHome())
+            );
+          }),
+          _buildFooterItem(Icons.book, 'Nhật kí', null),
+          _buildFooterItem(Icons.list, 'Kế hoạch', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PlanningScreen()),
+            );
+          }),
+          _buildFooterItem(Icons.person, 'Hồ sơ', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => UserProfileScreen()),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooterItem(IconData icon, String label, VoidCallback? onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white),
+          SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ],
       ),
     );
   }
@@ -166,43 +218,6 @@ class LegendItem extends StatelessWidget {
         Container(width: 20, height: 20, color: color, margin: const EdgeInsets.all(5)),
         Text(label, style: const TextStyle(color: Colors.white)),
       ],
-    );
-  }
-  Widget _buildTransparentFooter(BuildContext context) {
-    return Container(
-      height: 60,
-      color: Colors.black.withOpacity(0.95),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildFooterItem(Icons.home, 'Chung', null),
-          _buildFooterItem(Icons.book, 'Nhật kí', null),
-          _buildFooterItem(Icons.list, 'Kế hoạch', () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => PlanningScreen()),
-            );
-          }),
-          _buildFooterItem(Icons.more_horiz, 'Khác', null),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFooterItem(IconData icon, String label, VoidCallback? onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white),
-          SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(color: Colors.white, fontSize: 12),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -39,6 +39,10 @@ dependencies:
   encrypt: ^5.0.1
   provider: ^6.0.0
   http: ^1.2.2
+  device_info_plus: ^9.0.2
+  crypto: ^3.0.3
+  flutter_secure_storage: ^9.2.2
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
@@ -82,7 +86,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/main-bg.png
+    - assets/images/two-ladies.png
     - assets/images/image.png
+    - assets/images/planning.jpg
+    - assets/images/mealprepare.jpg
+    - assets/images/placeholder_dish.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

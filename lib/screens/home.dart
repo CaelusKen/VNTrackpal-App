@@ -1,11 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:vn_trackpal/data/data_holder.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:vn_trackpal/screens/dishselector.dart';
+import 'package:vn_trackpal/screens/log.dart';
 import 'package:vn_trackpal/screens/planning.dart';
+import 'package:vn_trackpal/screens/planningv2.dart';
+import 'package:vn_trackpal/screens/recommenddish.dart';
+import 'package:vn_trackpal/screens/userprofile.dart';
 
-class CalorieTrackerHome extends StatelessWidget {
+class CalorieTrackerHome extends StatefulWidget {
+  @override
+  _CalorieTrackerHomeState createState() => _CalorieTrackerHomeState();
+}
+
+class _CalorieTrackerHomeState extends State<CalorieTrackerHome> {
+  static final FlutterSecureStorage _storage = FlutterSecureStorage();
+
+  Future<String> _getName() async {
+    String? name = await _storage.read(key: 'name');
+    return name ?? 'Người dùng'; // Default to 'Người dùng' if name is null
+  }
   @override
   Widget build(BuildContext context) {
+    //AuthApi.deleteCredentials();
     return Scaffold(
       body: Stack(
         children: [
@@ -30,16 +46,23 @@ class CalorieTrackerHome extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Consumer<UserData>(
-                      builder: (context, userData, child) {
-                        return Text(
-                          'XIN CHÀO ${userData.name.toUpperCase()},',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        );
+                    FutureBuilder<String>(
+                      future: _getName(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else {
+                          return Text(
+                            'XIN CHÀO ${snapshot.data?.toUpperCase()},',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        }
                       },
                     ),
                     const SizedBox(height: 10),
@@ -71,10 +94,34 @@ class CalorieTrackerHome extends StatelessWidget {
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
                       children: [
-                        _buildInfoCard('Vận động', '00 calo', Icons.fireplace),
-                        _buildInfoCard('Cân nặng', 'trong vòng 1 tuần', Icons.line_weight),
-                        _buildInfoCard('Gợi ý bữa ăn tiếp theo', '', Icons.restaurant),
-                        _buildInfoCard('Tìm món ăn mới?', '', Icons.search),
+                        _buildInfoCard('Vận động', '00 calo', Icons.fireplace, () {
+                          // Navigate to Exercise page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => TrackScreen()),
+                          );
+                        }),
+                      _buildInfoCard('Cân nặng', 'trong vòng 1 tuần', Icons.line_weight, () {
+                          // Navigate to Weight Tracking page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => TrackScreen()),
+                          );
+                      }),
+                      _buildInfoCard('Gợi ý bữa ăn tiếp theo', '', Icons.restaurant, () {
+                        // Navigate to Meal Suggestion page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => RecommendDishScreen()),
+                        );
+                      }),
+                      _buildInfoCard('Tìm món ăn mới?', '', Icons.search, () {
+                        // Navigate to Food Search page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => DishSelectorScreen()),
+                        );
+                      }),
                       ],
                     ),
                   ],
@@ -105,8 +152,10 @@ class CalorieTrackerHome extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(String title, String subtitle, IconData icon) {
-    return Card(
+  Widget _buildInfoCard(String title, String subtitle, IconData icon, VoidCallback? onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Card(
       color: Colors.black.withOpacity(0.7),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -131,8 +180,9 @@ class CalorieTrackerHome extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTransparentFooter(BuildContext context) {
     return Container(
@@ -142,14 +192,24 @@ class CalorieTrackerHome extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildFooterItem(Icons.home, 'Chung', null),
-          _buildFooterItem(Icons.book, 'Nhật kí', null),
+          _buildFooterItem(Icons.book, 'Nhật kí', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => LogScreen()),
+            );
+          }),
           _buildFooterItem(Icons.list, 'Kế hoạch', () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => PlanningScreen()),
             );
           }),
-          _buildFooterItem(Icons.more_horiz, 'Khác', null),
+          _buildFooterItem(Icons.person, 'Hồ sơ', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => UserProfileScreen()),
+            );
+          }),
         ],
       ),
     );
